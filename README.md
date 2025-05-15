@@ -1,26 +1,33 @@
-# ROS Tabanlı Otonom Yük Taşıma Robotu Arayüzü
+# Otonom Yük Taşıma Robotu Arayüzü
 
-Bu proje, TÜBİTAK 2209-A kapsamında geliştirilen bir arayüz uygulamasıdır. ROS (Robot Operating System) kullanılarak tasarlanan sistem, endüstriyel ortamlarda otonom yük taşıma görevlerini yönetmek amacıyla kullanıcı dostu, estetik ve işlevsel bir kontrol paneli sunmaktadır.
+Bu proje, TÜBİTAK 2209-A kapsamında geliştirilmiş olup, endüstriyel ortamda kullanılmak üzere otonom robotlar için modern bir kullanıcı arayüzü sunmaktadır.
 
-## Özellikler
-
-- Canlı kamera izleme
-- Harita seçimi ve navigasyon
-- Pil ve yük durumu takibi
-- Hız, çalışma süresi, manuel kontrol
-- RViz ile gerçek zamanlı harita görüntüleme
-- Ayarlar paneli ve bildirim merkezi
-- ROS ile tam entegrasyon
-
-## Kullanılan Teknolojiler
-
+## 🚀 Kullanılan Teknolojiler
+- Python (PyQt6)
 - ROS Noetic
-- Python 3
-- PyQt6
 - OpenCV
-- RViz, Gazebo
+- Qt Designer
+- RViz
 
-## Geliştirici
-**Özlem ALTINTAŞ**  
-Fırat Üniversitesi - Yazılım Mühendisliği  
-GitHub: [ozlem-wq](https://github.com/ozlem-wq)
+## 🔧 Özellikler
+- Canlı izleme (ROS kamera / video desteği)
+- Manuel kontrol (←↑↓→)
+- RPM, Pil, Yük göstergeleri
+- Harita seçimi ve robot konum izleme
+- Bildirim ve ayarlar paneli
+
+## 📁 Klasör Yapısı
+- `ui/`: Arayüz sayfaları (home, navigation, style)
+- `images/`: Arka plan ve test videoları
+- `publisher.py`: ROS test publisher
+- `doc/`: TÜBİTAK Raporları ve ek belgeler
+
+## 📸 Ekran Görüntüsü
+![arayuz](images/screenshot.png)
+
+## 👩‍💻 Geliştirici
+- Özlem ALTINTAŞ | @ozlem-wq
+
+## 📄 Lisans
+MIT Lisansı
+
