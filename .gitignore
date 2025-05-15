@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+
+# ROS log and launch files
+*.log
+*.launch
+*.bag
+*.db
+*.cfg
+
+# Qt Designer and UI files (if generated dynamically)
+*.ui
+*.qrc
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints
+
+# Visual Studio Code
+.vscode/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Compiled files
+*.out
+*.exe
+*.class
+
+# Virtual env
+venv/
+env/
