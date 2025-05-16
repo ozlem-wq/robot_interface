@@ -1,71 +1,67 @@
-# performance_page.py
-
 import rospy
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PyQt6.QtGui import QFont
 from std_msgs.msg import Float32
 import pyqtgraph as pg
+from collections import deque
+
 
 class PerformancePage(QWidget):
     def __init__(self):
         super().__init__()
-        self.setup_ui()
 
-        self.time_data = []
-        self.speed_data = []
-        self.battery_data = []
-        self.load_data = []
+        self.init_ui()
+        self.init_ros()
+
+        self.data_window = 100  # kaç veri gösterilecek (sürüklenen pencere)
+        self.speed_data = deque(maxlen=self.data_window)
+        self.battery_data = deque(maxlen=self.data_window)
+        self.load_data = deque(maxlen=self.data_window)
+        self.x = deque(maxlen=self.data_window)
         self.counter = 0
 
-        rospy.Subscriber("/robot_speed", Float32, self.update_speed)
-        rospy.Subscriber("/battery_level", Float32, self.update_battery)
-        rospy.Subscriber("/load_level", Float32, self.update_load)
+        self.timer = pg.QtCore.QTimer()
+        self.timer.timeout.connect(self.update_graphs)
+        self.timer.start(500)  # 0.5 saniyede bir çizim
 
-    def setup_ui(self):
+    def init_ui(self):
         layout = QVBoxLayout()
 
-        title = QLabel("📊 Performans Grafikleri")
-        title.setFont(QFont("Arial", 18))
+        title = QLabel("📈 Anlık Performans Takibi")
+        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        title.setStyleSheet("color: white;")
         layout.addWidget(title)
 
-        self.plot_widget = pg.PlotWidget()
-        self.plot_widget.setTitle("Anlık Hız Değeri")
-        self.plot_widget.setLabel("left", "Hız (m/s)")
-        self.plot_widget.setLabel("bottom", "Zaman (s)")
+        self.plot_widget = pg.PlotWidget(title="Speed / Battery / Load")
+        self.plot_widget.setBackground('#111')
+        self.plot_widget.showGrid(x=True, y=True)
+        self.plot_widget.addLegend()
+
+        self.speed_curve = self.plot_widget.plot(pen='y', name='Hız (RPM)')
+        self.battery_curve = self.plot_widget.plot(pen='g', name='Pil (%)')
+        self.load_curve = self.plot_widget.plot(pen='r', name='Yük (%)')
+
         layout.addWidget(self.plot_widget)
-
-        self.btn_export = QPushButton("📁 Veriyi CSV Olarak Kaydet")
-        self.btn_export.clicked.connect(self.export_data_csv)
-        layout.addWidget(self.btn_export)
-
         self.setLayout(layout)
 
-    def update_speed(self, msg):
-        self.counter += 1
-        self.time_data.append(self.counter)
-        self.speed_data.append(msg.data)
-        self.update_graph()
+    def init_ros(self):
+        rospy.Subscriber("/robot_speed", Float32, self.cb_speed)
+        rospy.Subscriber("/battery_level", Float32, self.cb_battery)
+        rospy.Subscriber("/load_level", Float32, self.cb_load)
 
-    def update_battery(self, msg):
+    def cb_speed(self, msg):
+        self.speed_data.append(msg.data)
+        self.x.append(self.counter)
+        self.counter += 1
+
+    def cb_battery(self, msg):
         self.battery_data.append(msg.data)
 
-    def update_load(self, msg):
+    def cb_load(self, msg):
         self.load_data.append(msg.data)
 
-    def update_graph(self):
-        self.plot_widget.clear()
-        self.plot_widget.plot(self.time_data, self.speed_data, pen='r')
+    def update_graphs(self):
+        self.speed_curve.setData(self.x, list(self.speed_data))
+        self.battery_curve.setData(self.x, list(self.battery_data))
+        self.load_curve.setData(self.x, list(self.load_data))
 
-    def export_data_csv(self):
-        file_name = "performance_data.csv"
-        try:
-            with open(file_name, "w") as f:
-                f.write("Zaman,Hiz,Pil,Yuk\n")
-                for i in range(len(self.speed_data)):
-                    hiz = self.speed_data[i]
-                    pil = self.battery_data[i] if i < len(self.battery_data) else 0
-                    yuk = self.load_data[i] if i < len(self.load_data) else 0
-                    f.write(f"{i},{hiz},{pil},{yuk}\n")
-            print(f"Veriler {file_name} dosyasına kaydedildi!")
-        except Exception as e:
-            print("CSV dışa aktarma hatası:", e)
