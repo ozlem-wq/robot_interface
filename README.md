@@ -11,10 +11,11 @@ Bu proje, TÜBİTAK 2209-A kapsamında geliştirilmiş olup, endüstriyel ortamd
 
 ## 🔧 Özellikler
 - Canlı izleme (ROS kamera / video desteği)
-- Manuel kontrol (←↑↓→)
-- RPM, Pil, Yük göstergeleri
+- Başlat/ Durdur ve Manuel kontrol (←↑↓→)
+- RPM, Pil, Yük, Çalışma Süresi göstergeleri
 - Harita seçimi ve robot konum izleme
 - Bildirim ve ayarlar paneli
+- Performans grafikleri 
 
 ## 📁 Klasör Yapısı
 - `ui/`: Arayüz sayfaları (home, navigation, style)
