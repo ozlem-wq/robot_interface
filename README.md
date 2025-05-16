@@ -8,6 +8,7 @@ Bu proje, TÜBİTAK 2209-A kapsamında geliştirilmiş olup, endüstriyel ortamd
 - OpenCV
 - Qt Designer
 - RViz
+- ubuntu 20.04 LTS
 
 ## 🔧 Özellikler
 - Canlı izleme (ROS kamera / video desteği)
