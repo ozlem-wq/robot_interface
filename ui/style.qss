@@ -1,28 +1,59 @@
+/* Genel arka plan ve yazı */
 QWidget {
-    background-color: #0A0A0A;
-    color: #FFFFFF;
-    font-family: 'Segoe UI';
+    background-color: #1e1e1e;
+    color: #ffffff;
+    font-family: Arial;
     font-size: 14px;
 }
 
-QPushButton {
-    background-color: #007BFF;
-    color: white;
-    border-radius: 6px;
-    padding: 8px;
+/* QLabel başlıkları */
+QLabel {
+    color: #f0f0f0;
+    font-size: 14px;
 }
 
-QPushButton:hover {
-    background-color: #0056b3;
-}
-
+/* QProgressBar */
 QProgressBar {
-    border: 2px solid #555;
+    border: 1px solid #555;
     border-radius: 5px;
-    background: #2A2A2A;
+    background-color: #2e2e2e;
     text-align: center;
+    color: #ffffff;
+}
+QProgressBar::chunk {
+    background-color: #007acc;
+    width: 20px;
 }
 
-QProgressBar::chunk {
-    background-color: #1DB954;
+/* QPushButton */
+QPushButton {
+    background-color: #3a3a3a;
+    border: 1px solid #5a5a5a;
+    border-radius: 8px;
+    padding: 8px;
+    color: #ffffff;
+    font-weight: bold;
+}
+QPushButton:hover {
+    background-color: #505050;
+}
+QPushButton:pressed {
+    background-color: #007acc;
+}
+
+/* QComboBox */
+QComboBox {
+    background-color: #2a2a2a;
+    border: 1px solid #444;
+    padding: 5px;
+    color: #ffffff;
+}
+QComboBox QAbstractItemView {
+    background-color: #2a2a2a;
+    selection-background-color: #007acc;
+}
+
+/* QDial */
+QDial {
+    background: transparent;
 }

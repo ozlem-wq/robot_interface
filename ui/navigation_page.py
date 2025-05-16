@@ -1,16 +1,19 @@
 import os
 import shutil
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QComboBox, QFileDialog, QMessageBox
-from PyQt6.QtGui import QPixmap, QFont, QPainter, QColor, QPen
-from PyQt6.QtCore import Qt
 import rospy
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QLabel, QPushButton, QComboBox,
+    QFileDialog, QMessageBox
+)
+from PyQt6.QtGui import QPixmap, QFont
+from PyQt6.QtCore import Qt
 from std_msgs.msg import String
 
 class NavigationPage(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.image_dir = "/home/ozlem/catkin_ws/src/robot_interface/images"
+        self.image_dir = os.path.expanduser("~/catkin_ws/src/robot_interface/images")
         self.map_paths = self.load_existing_maps()
 
         self.setup_ui()
@@ -21,43 +24,76 @@ class NavigationPage(QWidget):
     def load_existing_maps(self):
         maps = {}
         for fname in os.listdir(self.image_dir):
-            if fname.endswith(".ppm"):
+            if fname.endswith((".ppm", ".png", ".jpg")):
                 label = os.path.splitext(fname)[0].capitalize().replace("_", " ")
                 maps[label] = os.path.join(self.image_dir, fname)
         return maps
 
     def setup_ui(self):
         layout = QVBoxLayout()
+        layout.setSpacing(12)
+        layout.setContentsMargins(40, 20, 40, 20)
+        self.setStyleSheet("background-color: black; color: white; font-family: Arial;")
 
         title = QLabel("🗺 Navigasyon ve Harita İzleme")
-        title.setFont(QFont("Arial", 20))
-        title.setStyleSheet("color: white;")
+        title.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
-        self.setStyleSheet("background-color: #222222;")
+        # Harita seçimi
+        label_combo = QLabel("📍 Harita Seç:")
+        label_combo.setFont(QFont("Arial", 12))
+        layout.addWidget(label_combo)
 
         self.map_selector = QComboBox()
         self.map_selector.addItems(self.map_paths.keys())
         self.map_selector.currentTextChanged.connect(self.update_map_display)
         layout.addWidget(self.map_selector)
 
+        # Harita gösterimi
         self.map_display = QLabel("Harita yüklenecek...")
         self.map_display.setFixedSize(640, 480)
+        self.map_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.map_display.setStyleSheet("border: 2px solid white;")
         layout.addWidget(self.map_display)
 
-        btn_send_goal = QPushButton("📍 Hedefe Git")
+        # Hedefe git butonu
+        label_goal = QLabel("🚀 Robotu Gönder:")
+        label_goal.setFont(QFont("Arial", 12))
+        layout.addWidget(label_goal)
+
+        btn_send_goal = QPushButton("📤 Hedefe Git")
+        btn_send_goal.setStyleSheet("color: white; font-weight: bold;")
         btn_send_goal.clicked.connect(self.send_goal)
         layout.addWidget(btn_send_goal)
 
-        btn_reset = QPushButton("🔄 Konumu Sıfırla")
+        # Konumu sıfırla
+        label_reset = QLabel("🔄 Konumu Sıfırla:")
+        label_reset.setFont(QFont("Arial", 12))
+        layout.addWidget(label_reset)
+
+        btn_reset = QPushButton("🔁 Sıfırla")
+        btn_reset.setStyleSheet("color: white; font-weight: bold;")
         btn_reset.clicked.connect(self.reset_position)
         layout.addWidget(btn_reset)
 
-        btn_add_map = QPushButton("📁 Yeni Harita Ekle")
+        # Harita ekle
+        label_add = QLabel("📁 Yeni Harita Ekle:")
+        label_add.setFont(QFont("Arial", 12))
+        layout.addWidget(label_add)
+
+        btn_add_map = QPushButton("➕ Harita Ekle")
+        btn_add_map.setStyleSheet("color: white; font-weight: bold;")
         btn_add_map.clicked.connect(self.add_new_map)
         layout.addWidget(btn_add_map)
 
-        btn_delete_map = QPushButton("🗑 Seçili Haritayı Sil")
+        # Harita sil
+        label_delete = QLabel("🗑 Harita Sil:")
+        label_delete.setFont(QFont("Arial", 12))
+        layout.addWidget(label_delete)
+
+        btn_delete_map = QPushButton("❌ Haritayı Sil")
+        btn_delete_map.setStyleSheet("color: white; font-weight: bold;")
         btn_delete_map.clicked.connect(self.delete_selected_map)
         layout.addWidget(btn_delete_map)
 
@@ -69,18 +105,11 @@ class NavigationPage(QWidget):
     def update_map_display(self, selected_map):
         map_path = self.map_paths.get(selected_map)
         if map_path and os.path.exists(map_path):
-            base_pixmap = QPixmap(map_path)
-            pixmap_with_robot = QPixmap(base_pixmap)
-            painter = QPainter(pixmap_with_robot)
-            pen = QPen(QColor("red"))
-            painter.setPen(pen)
-            painter.setBrush(QColor("red"))
-            painter.drawEllipse(100, 100, 10, 10)
-            painter.end()
-            self.map_display.setPixmap(pixmap_with_robot.scaled(
-                self.map_display.size(), Qt.AspectRatioMode.KeepAspectRatio))
+            pixmap = QPixmap(map_path)
+            scaled = pixmap.scaled(self.map_display.size(), Qt.AspectRatioMode.KeepAspectRatio)
+            self.map_display.setPixmap(scaled)
         else:
-            self.map_display.setText("Harita dosyası bulunamadı")
+            self.map_display.setText("Harita dosyası bulunamadı.")
 
     def send_goal(self):
         self.publisher_target.publish("goal_dummy_sent")
@@ -92,7 +121,7 @@ class NavigationPage(QWidget):
 
     def add_new_map(self):
         file_dialog = QFileDialog()
-        file_path, _ = file_dialog.getOpenFileName(self, "Yeni Harita Seç", "", "PPM Files (*.ppm)")
+        file_path, _ = file_dialog.getOpenFileName(self, "Yeni Harita Seç", "", "Image Files (*.ppm *.png *.jpg)")
         if file_path:
             fname = os.path.basename(file_path)
             dest_path = os.path.join(self.image_dir, fname)
@@ -118,4 +147,6 @@ class NavigationPage(QWidget):
                 self.map_selector.removeItem(self.map_selector.currentIndex())
                 del self.map_paths[selected_label]
                 self.map_display.setText("Harita silindi.")
+
+
 

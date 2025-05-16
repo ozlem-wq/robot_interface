@@ -1,133 +1,149 @@
 import os
 import rospy
-from PyQt6.QtWidgets import QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QDial, QProgressBar
-from PyQt6.QtGui import QPixmap, QFont, QMovie
-from PyQt6.QtCore import QTimer, Qt
+import cv2
+from PyQt6.QtWidgets import (
+    QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
+    QProgressBar, QDial, QSizePolicy
+)
+from PyQt6.QtCore import Qt, QTimer, QTime
+from PyQt6.QtGui import QPixmap, QFont, QImage
 from std_msgs.msg import Float32
-from PyQt6.QtMultimediaWidgets import QVideoWidget
-from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput, QMediaContent
-from PyQt6.QtCore import QUrl
-import datetime
+from geometry_msgs.msg import Twist
+from ui.settings_page import SettingsPage
+
 
 class HomePage(QWidget):
     def __init__(self):
         super().__init__()
-        self.setObjectName("HomePage")
-        self.init_ui()
-        self.start_time = None
-        self.setup_ros_subscribers()
-        self.update_timer = QTimer()
-        self.update_timer.timeout.connect(self.update_work_time)
-        self.update_timer.start(1000)
+        self.start_time = QTime.currentTime()
+        self.elapsed_timer = QTimer()
+        self.elapsed_timer.timeout.connect(self.update_runtime)
+        self.elapsed_timer.start(1000)
 
-    def init_ui(self):
-        self.setStyleSheet("#HomePage { border-image: url(../images/background_home.png) 0 0 0 0 stretch stretch; }")
+        self.apply_stylesheet()
+        self.setup_ui()
+        self.setup_video_player()
+        self.setup_subscribers()
 
-        layout = QVBoxLayout(self)
+    def apply_stylesheet(self):
+        qss_path = os.path.join(os.path.dirname(__file__), "style.qss")
+        if os.path.exists(qss_path):
+            with open(qss_path, "r") as f:
+                self.setStyleSheet(f.read())
 
-        # Üst menü butonları zaten main_window'da
+    def setup_ui(self):
+        self.setObjectName("homePage")
+        self.setAutoFillBackground(True)
 
-        # Ana içerik düzeni
-        content_layout = QHBoxLayout()
+        self.background = QLabel(self)
+        pixmap = QPixmap(os.path.join(os.path.dirname(__file__), "../images/background_home.png"))
+        self.background.setPixmap(pixmap)
+        self.background.setScaledContents(True)
+        self.background.setGeometry(0, 0, 1280, 720)
+        self.background.lower()
 
-        # Sol kısım (hız, manuel kontrol, süre)
-        left_panel = QVBoxLayout()
+        self.label_speed_title = QLabel("⚙️ Hız:", self)
+        self.label_speed_title.move(50, 40)
+        self.label_speed_title.setStyleSheet("color: white; font-size: 14px;")
 
-        self.label_speed_title = QLabel("🚀 Hız:")
-        self.label_speed_title.setStyleSheet("color: white;")
-        left_panel.addWidget(self.label_speed_title)
+        self.label_speed = QLabel("Hız: 0.0 RPM", self)
+        self.label_speed.move(50, 130)
+        self.label_speed.setStyleSheet("color: white;")
 
-        self.dial_speed = QDial()
-        self.dial_speed.setMinimum(0)
-        self.dial_speed.setMaximum(120)
-        self.dial_speed.setNotchesVisible(True)
-        left_panel.addWidget(self.dial_speed)
+        self.dial_speed = QDial(self)
+        self.dial_speed.setGeometry(50, 70, 100, 100)
+        self.dial_speed.setRange(0, 100)
 
-        self.label_speed_value = QLabel("Hız: 0.0 RPM")
-        self.label_speed_value.setStyleSheet("color: white;")
-        left_panel.addWidget(self.label_speed_value)
+        self.label_manual = QLabel("🕹 Manuel Kontrol", self)
+        self.label_manual.move(50, 180)
+        self.label_manual.setStyleSheet("color: orange; font-weight: bold;")
 
-        self.label_manual = QLabel("🕹 Manuel Kontrol")
-        self.label_manual.setStyleSheet("color: orange;")
-        left_panel.addWidget(self.label_manual)
+        self.btn_forward = QPushButton("↑", self)
+        self.btn_backward = QPushButton("↓", self)
+        self.btn_left = QPushButton("←", self)
+        self.btn_right = QPushButton("→", self)
 
-        btn_row1 = QHBoxLayout()
-        self.btn_forward = QPushButton("↑")
-        btn_row1.addStretch()
-        btn_row1.addWidget(self.btn_forward)
-        btn_row1.addStretch()
-        left_panel.addLayout(btn_row1)
+        self.btn_forward.setGeometry(140, 210, 50, 30)
+        self.btn_backward.setGeometry(140, 250, 50, 30)
+        self.btn_left.setGeometry(80, 250, 50, 30)
+        self.btn_right.setGeometry(200, 250, 50, 30)
 
-        btn_row2 = QHBoxLayout()
-        self.btn_left = QPushButton("←")
-        self.btn_back = QPushButton("↓")
-        self.btn_right = QPushButton("→")
-        btn_row2.addWidget(self.btn_left)
-        btn_row2.addWidget(self.btn_back)
-        btn_row2.addWidget(self.btn_right)
-        left_panel.addLayout(btn_row2)
+        self.label_runtime_title = QLabel("⏱ Çalışma Süresi", self)
+        self.label_runtime_title.move(50, 300)
+        self.label_runtime_title.setStyleSheet("color: white;")
 
-        self.label_work = QLabel("⏱ Çalışma Süresi")
-        self.label_work.setStyleSheet("color: white;")
-        left_panel.addWidget(self.label_work)
+        self.label_runtime = QLabel("Süre: 00:00:00", self)
+        self.label_runtime.move(50, 330)
+        self.label_runtime.setStyleSheet("color: white;")
 
-        self.label_duration = QLabel("⏱ Süre: 00:00:00")
-        self.label_duration.setStyleSheet("color: white;")
-        left_panel.addWidget(self.label_duration)
+        self.btn_start = QPushButton("▶ Başlat", self)
+        self.btn_stop = QPushButton("■ Durdur", self)
+        self.btn_start.setGeometry(50, 620, 180, 30)
+        self.btn_stop.setGeometry(250, 620, 180, 30)
 
-        start_stop_layout = QHBoxLayout()
-        self.btn_start = QPushButton("▶ Başlat")
-        self.btn_stop = QPushButton("■ Durdur")
-        start_stop_layout.addWidget(self.btn_start)
-        start_stop_layout.addWidget(self.btn_stop)
-        left_panel.addLayout(start_stop_layout)
+        self.label_video_title = QLabel("📹 Canlı İzleme", self)
+        self.label_video_title.move(830, 130)
+        self.label_video_title.setStyleSheet("color: white; font-size: 16px;")
 
-        content_layout.addLayout(left_panel)
+        self.label_video = QLabel(self)
+        self.label_video.setGeometry(780, 160, 260, 260)
+        self.label_video.setStyleSheet("border-radius: 130px; background-color: black;")
+        self.label_video.setScaledContents(True)
 
-        # Sağ panel (video + göstergeler)
-        right_panel = QVBoxLayout()
+        self.label_battery = QLabel("🔋 Pil:", self)
+        self.label_battery.move(780, 450)
+        self.label_battery.setStyleSheet("color: white;")
+        self.progress_battery = QProgressBar(self)
+        self.progress_battery.setGeometry(830, 450, 300, 20)
 
-        self.label_video_title = QLabel("📷 Canlı İzleme")
-        self.label_video_title.setStyleSheet("color: white;")
-        right_panel.addWidget(self.label_video_title)
+        self.label_load = QLabel("📦 Yük (kg):", self)
+        self.label_load.move(780, 480)
+        self.label_load.setStyleSheet("color: white;")
+        self.progress_load = QProgressBar(self)
+        self.progress_load.setGeometry(870, 480, 260, 20)
 
-        # Canlı video QLabel (yuvarlak gibi göstermek için özel stil ile)
-        self.video_label = QLabel()
-        self.video_label.setFixedSize(300, 300)
-        self.video_label.setStyleSheet("border-radius: 150px; border: 3px solid #00FFFF;")
-        right_panel.addWidget(self.video_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        # Butonlara hareket bağlantısı
+        self.btn_forward.clicked.connect(lambda: self.send_cmd_vel(0.5, 0.0))
+        self.btn_backward.clicked.connect(lambda: self.send_cmd_vel(-0.5, 0.0))
+        self.btn_left.clicked.connect(lambda: self.send_cmd_vel(0.0, 0.5))
+        self.btn_right.clicked.connect(lambda: self.send_cmd_vel(0.0, -0.5))
 
-        # Pil ve Yük Göstergesi
-        self.label_status = QLabel("🔋 Pil ve Yük Durumu")
-        self.label_status.setStyleSheet("color: white;")
-        right_panel.addWidget(self.label_status)
+    def setup_video_player(self):
+        video_path = os.path.join(os.path.dirname(__file__), "../images/test_video.mp4")
+        self.cap = cv2.VideoCapture(video_path)
+        self.video_timer = QTimer(self)
+        self.video_timer.timeout.connect(self.update_frame)
+        self.video_timer.start(30)
 
-        self.progress_battery = QProgressBar()
-        self.progress_battery.setMaximum(100)
-        self.progress_battery.setValue(0)
-        self.progress_battery.setFormat("🔋 Pil: %p%%")
-        right_panel.addWidget(self.progress_battery)
+    def update_frame(self):
+        ret, frame = self.cap.read()
+        if not ret:
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            return
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = cv2.resize(frame, (260, 260))
+        image = QImage(frame.data, frame.shape[1], frame.shape[0], QImage.Format.Format_RGB888)
+        pixmap = QPixmap.fromImage(image)
+        self.label_video.setPixmap(pixmap)
 
-        self.progress_load = QProgressBar()
-        self.progress_load.setMaximum(100)
-        self.progress_load.setValue(0)
-        self.progress_load.setFormat("📦 Yük (kg): %p%%")
-        right_panel.addWidget(self.progress_load)
+    def update_runtime(self):
+        elapsed = QTime.currentTime().secsTo(self.start_time)
+        if elapsed < 0:
+            elapsed = -elapsed
+        hours = elapsed // 3600
+        minutes = (elapsed % 3600) // 60
+        seconds = elapsed % 60
+        self.label_runtime.setText(f"Süre: {hours:02}:{minutes:02}:{seconds:02}")
 
-        content_layout.addLayout(right_panel)
-        layout.addLayout(content_layout)
-
-        self.init_video()
-
-    def setup_ros_subscribers(self):
+    def setup_subscribers(self):
+        self.cmd_vel_pub = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
         rospy.Subscriber("/robot_speed", Float32, self.update_speed)
         rospy.Subscriber("/battery_level", Float32, self.update_battery)
         rospy.Subscriber("/load_level", Float32, self.update_load)
 
     def update_speed(self, msg):
-        speed = msg.data
-        self.dial_speed.setValue(int(speed * 100))  # RPM gösterim
-        self.label_speed_value.setText(f"Hız: {speed:.1f} RPM")
+        self.label_speed.setText(f"Hız: {msg.data:.1f} RPM")
+        self.dial_speed.setValue(int(msg.data))
 
     def update_battery(self, msg):
         self.progress_battery.setValue(int(msg.data))
@@ -135,38 +151,12 @@ class HomePage(QWidget):
     def update_load(self, msg):
         self.progress_load.setValue(int(msg.data))
 
-    def update_work_time(self):
-        if not self.start_time:
-            self.start_time = datetime.datetime.now()
-        elapsed = datetime.datetime.now() - self.start_time
-        self.label_duration.setText("⏱ Süre: " + str(elapsed).split('.')[0])
+    def send_cmd_vel(self, lin, ang):
+        twist = Twist()
+        twist.linear.x = lin
+        twist.angular.z = ang
+        self.cmd_vel_pub.publish(twist)
 
-    def init_video(self):
-        import cv2
-        self.cap = cv2.VideoCapture("../images/test_video.mp4")
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_video_frame)
-        self.timer.start(33)
-
-    def update_video_frame(self):
-        import cv2
-        from PyQt6.QtGui import QImage, QPixmap
-        if self.cap.isOpened():
-            ret, frame = self.cap.read()
-            if ret:
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                height, width, channels = frame.shape
-                bytes_per_line = channels * width
-                q_image = QImage(frame.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)
-                pixmap = QPixmap.fromImage(q_image)
-                self.video_label.setPixmap(pixmap.scaled(self.video_label.size(), Qt.AspectRatioMode.KeepAspectRatio))
-            else:
-                self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-
-    def closeEvent(self, event):
-        if hasattr(self, "cap") and self.cap.isOpened():
-            self.cap.release()
-        event.accept()
 
 
 
