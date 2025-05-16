@@ -24,6 +24,15 @@ Bu proje, TÜBİTAK 2209-A kapsamında geliştirilmiş olup, endüstriyel ortamd
 - `publisher.py`: ROS test publisher
 - `doc/`: TÜBİTAK Raporları ve ek belgeler
 
+## ℹ️ Açıklama – ROS Kamera Entegrasyonu
+
+Bu proje kapsamında **canlı kamera izleme** için şu anda `OpenCV` üzerinden `.mp4` uzantılı bir test videosu gösterilmektedir.  
+
+Gerçek bir robot sistemiyle çalışırken ROS üzerinden `/camera/image_raw` topic'ine abone olacak şekilde tasarlanmıştır.  
+Yani `cv_bridge` ve `sensor_msgs/Image` kullanımına dair satırlar **yorum satırı** olarak bırakılmıştır.
+
+🔁 Gerçek robot entegresi sağlandığında, bu satırlar yorumdan çıkarılarak sistem doğrudan **ROS kamera veri akışıyla** çalışacaktır.
+
 ## 📸 Ekran Görüntüsü
 ![arayuz](images/screenshot.png)
 
