@@ -34,11 +34,23 @@ Yani `cv_bridge` ve `sensor_msgs/Image` kullanımına dair satırlar **yorum sat
 🔁 Gerçek robot entegresi sağlandığında, bu satırlar yorumdan çıkarılarak sistem doğrudan **ROS kamera veri akışıyla** çalışacaktır.
 
 ## 📸 Ekran Görüntüsü
-![arayuz](images/screenshot.png)
+Arayüz akış Diyagramı:
+![anasayfa](images/screenshot2.png)
+ROS Topicleri ve Fonksiyonlar Arasında Etkileşim Şeması:
+![ROS ile Etkileşim Şeması](images/screenshot1.png)
+Arayüz(anasayfa):
+![Arayüz anasayfa](images/screenshot3.png)
+Ayarlar Sayfası:
+![ayarlar](images/screenshot4.png)
+Navigasyon Paneli:  
+![Navigasyon](images/screenshot7.png)
+Performans Grafikleri:
+![Performans](images/screenshot5.png)
+Bildirim Paneli:
+![Bildirimler](images/screenshot6.png)
 
 ## 👩‍💻 Geliştirici
 - Özlem ALTINTAŞ | @ozlem-wq
 
 ## 📄 Lisans
 MIT Lisansı
-
